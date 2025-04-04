@@ -29,15 +29,34 @@
 #         print(num)
 
 #Задание 1.3
-def get_number(prompt):
-    while True:
-        try:
-            return float(input(prompt))
-        except ValueError:
-            print("Ошибка: введите число!")
+# def get_number(prompt):
+#     while True:
+#         try:
+#             return float(input(prompt))
+#         except ValueError:
+#             print("Ошибка: введите число!")
 
-m = get_number("Введите вещественное число m: ")
+# m = get_number("Введите вещественное число m: ")
 
-print("Последовательность:")
-for i in range(1, 11):
-    print(i * m)
+# print("Последовательность:")
+# for i in range(1, 11):
+#     print(i * m)
+# #Задание 1.4
+print("Введите последовательность целых чисел (для завершения введите пустую строку):")
+
+total_sum = 0
+count = 0
+
+while True:
+    num_str = input()
+    if num_str == "":
+        break
+    try:
+        num = int(num_str)
+        total_sum += num
+        count += 1
+    except ValueError:
+        print("Ошибка: введите целое число или пустую строку для завершения")
+
+print("Сумма всех чисел:", total_sum)
+print("Количество всех чисел:", count)
