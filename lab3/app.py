@@ -28,13 +28,13 @@ def get_number():
 
 @app.route('/number/', methods=['POST'])
 def post_number():
-    # Проверка формата запроса
+ 
     if not request.is_json:
         return jsonify({"error": "Request must be JSON"}), 400
     
     data = request.get_json()
     
-    # Валидация параметра
+ 
     if 'jsonParam' not in data:
         return jsonify({"error": "Missing 'jsonParam' in JSON"}), 400
     
@@ -43,12 +43,23 @@ def post_number():
     except (ValueError, TypeError):
         return jsonify({"error": "jsonParam must be a number"}), 400
 
-    # Генерация результата
+   
     random_num = random.randint(1, 100)
     result = random_num * num
     
     return jsonify({
         "number": result,
+        "operation": random.choice(operations)
+    })
+
+    
+@app.route('/number/', methods=['DELETE'])
+def delete_number():
+  
+    random_num = random.randint(1, 100)
+    
+    return jsonify({
+        "number": random_num,
         "operation": random.choice(operations)
     })
 
