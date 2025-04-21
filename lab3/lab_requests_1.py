@@ -1,7 +1,6 @@
 import requests
 import random
 
-# Функция для выполнения операций
 def apply_operation(a, b, operation):
     if operation == "sum":
         return a + b
@@ -43,7 +42,6 @@ print(f"DELETE: num={num3}, operation={op3}")
 
 # 4. Вычисление результата
 try:
-    # Выполняем операции последовательно: ((num1 OP2 num2) OP3 num3)
     intermediate = apply_operation(num1, num2, op2)
     final_result = apply_operation(intermediate, num3, op3)
     final_result = int(final_result)
