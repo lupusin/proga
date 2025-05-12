@@ -1,4 +1,3 @@
-import os
 import logging
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
@@ -11,33 +10,23 @@ import asyncio
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 
-# Получение токена из переменной окружения
 API_TOKEN = '7669247301:AAHSnwIBN9yzQ6EmSpxaPmRXzYt2JQIp_XM'
 
 # Инициализация бота и диспетчера
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
-dp = Dispatcher(storage=storage)  # Теперь передаем только storage
+dp = Dispatcher(storage=storage)  
 
 # Словарь для хранения курсов валют
 currency_rates = {}
 
-# Состояния FSM
+
 class CurrencyStates(StatesGroup):
     waiting_for_currency_name = State()
     waiting_for_currency_rate = State()
     waiting_for_convert_currency = State()
     waiting_for_convert_amount = State()
 
-# Обработчик команды /start
-@dp.message(Command("start"))
-async def cmd_start(message: Message):
-    await message.reply(
-        "Привет! Я бот для конвертации валют.\n"
-        "Доступные команды:\n"
-        "/save_currency — сохранить курс валюты\n"
-        "/convert — конвертировать валюту в рубли"
-    )
 
 # Обработчик команды /save_currency
 @dp.message(Command("save_currency"))
@@ -52,7 +41,7 @@ async def process_currency_name(message: Message, state: FSMContext):
     await state.update_data(currency_name=currency_name)
     await message.reply(f"Введите курс {currency_name} к рублю (например, 75.5):")
     await state.set_state(CurrencyStates.waiting_for_currency_rate)
-
+    
 # Обработчик ввода курса валюты
 @dp.message(CurrencyStates.waiting_for_currency_rate)
 async def process_currency_rate(message: Message, state: FSMContext):
