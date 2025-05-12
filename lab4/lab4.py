@@ -10,7 +10,12 @@ import asyncio
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 
+<<<<<<< HEAD
 API_TOKEN = '7669247301:AAHSnwIBN9yzQ6EmSpxaPmRXzYt2JQIp_XM'
+=======
+# Получение токена из переменной окружения
+API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+>>>>>>> becb1e523d6da5669ec8604f6b749acc9cc442b9
 
 # Инициализация бота и диспетчера
 bot = Bot(token=API_TOKEN)
