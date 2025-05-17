@@ -1,6 +1,6 @@
 import os
 import asyncio
-import aiohttp
+import requests
 from aiogram import Bot, Dispatcher, types, Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -35,12 +35,11 @@ bot = Bot(
 dp = Dispatcher(storage=MemoryStorage())
 dp.include_router(router)
 
-async def check_currency_exists(currency_name: str) -> bool:
-    async with aiohttp.ClientSession() as session:
-        async with session.get('http://localhost:5002/currencies') as resp:
-            if resp.status == 200:
-                currencies = await resp.json()
-                return any(curr['name'] == currency_name for curr in currencies)
+def check_currency_exists(currency_name: str) -> bool:
+    response = requests.get('http://localhost:5002/currencies')
+    if response.status_code == 200:
+        currencies = response.json()
+        return any(curr['name'] == currency_name for curr in currencies)
     return False
 
 # Команда /start
@@ -77,7 +76,7 @@ async def add_currency_start(message: types.Message, state: FSMContext):
 
 @router.message(CurrencyStates.waiting_currency_name)
 async def process_currency_name(message: types.Message, state: FSMContext):
-    if await check_currency_exists(message.text):
+    if check_currency_exists(message.text):
         await message.answer("Данная валюта уже существует!")
         await state.clear()
         return
@@ -92,15 +91,14 @@ async def process_currency_rate(message: types.Message, state: FSMContext):
         rate = float(message.text)
         data = await state.get_data()
         
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                'http://localhost:5001/load',
-                json={'currency_name': data['currency_name'], 'rate': rate}
-            ) as resp:
-                if resp.status == 200:
-                    await message.answer(f"Валюта {data['currency_name']} успешно добавлена!")
-                else:
-                    await message.answer("Ошибка при добавлении!")
+        response = requests.post(
+            'http://localhost:5001/load',
+            json={'currency_name': data['currency_name'], 'rate': rate}
+        )
+        if response.status_code == 200:
+            await message.answer(f"Валюта {data['currency_name']} успешно добавлена!")
+        else:
+            await message.answer("Ошибка при добавлении!")
     
     except ValueError:
         await message.answer("Некорректный курс!")
@@ -117,15 +115,14 @@ async def delete_currency_start(message: types.Message, state: FSMContext):
 async def process_delete_currency(message: types.Message, state: FSMContext):
     currency_name = message.text
     
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            'http://localhost:5001/delete',
-            json={'currency_name': currency_name}
-        ) as resp:
-            if resp.status == 200:
-                await message.answer(f"Валюта {currency_name} удалена!")
-            else:
-                await message.answer("Валюта не найдена!")
+    response = requests.post(
+        'http://localhost:5001/delete',
+        json={'currency_name': currency_name}
+    )
+    if response.status_code == 200:
+        await message.answer(f"Валюта {currency_name} удалена!")
+    else:
+        await message.answer("Валюта не найдена!")
     
     await state.clear()
 
@@ -138,7 +135,7 @@ async def update_currency_start(message: types.Message, state: FSMContext):
 @router.message(CurrencyStates.waiting_currency_to_update)
 async def process_currency_to_update(message: types.Message, state: FSMContext):
     currency_name = message.text
-    if not await check_currency_exists(currency_name):
+    if not check_currency_exists(currency_name):
         await message.answer("Валюта не найдена!")
         await state.clear()
         return
@@ -148,20 +145,19 @@ async def process_currency_to_update(message: types.Message, state: FSMContext):
     await state.set_state(CurrencyStates.waiting_rate_new)
 
 @router.message(CurrencyStates.waiting_rate_new)
-async def process_currency_rate(message: types.Message, state: FSMContext):
+async def process_currency_rate_new(message: types.Message, state: FSMContext):
     try:
         rate = float(message.text)
         data = await state.get_data()
         
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                'http://localhost:5001/update_currency',
-                json={'currency_name': data['currency_name'], 'rate': rate}
-            ) as resp:
-                if resp.status == 200:
-                    await message.answer(f"Валюта {data['currency_name']} успешно обновлена!")
-                else:
-                    await message.answer("Ошибка при добавлении!")
+        response = requests.post(
+            'http://localhost:5001/update_currency',
+            json={'currency_name': data['currency_name'], 'rate': rate}
+        )
+        if response.status_code == 200:
+            await message.answer(f"Валюта {data['currency_name']} успешно обновлена!")
+        else:
+            await message.answer("Ошибка при обновлении!")
     
     except ValueError:
         await message.answer("Некорректный курс!")
@@ -171,17 +167,16 @@ async def process_currency_rate(message: types.Message, state: FSMContext):
 # Команда /get_currencies
 @router.message(Command("get_currencies"))
 async def get_currencies(message: types.Message):
-    async with aiohttp.ClientSession() as session:
-        async with session.get('http://localhost:5002/currencies') as resp:
-            if resp.status == 200:
-                currencies = await resp.json()
-                response = "\n".join(
-                    [f"{curr['name']}: {curr['rate']} руб." 
-                     for curr in currencies]
-                ) or "Нет доступных валют"
-                await message.answer(response)
-            else:
-                await message.answer("Ошибка получения данных")
+    response = requests.get('http://localhost:5002/currencies')
+    if response.status_code == 200:
+        currencies = response.json()
+        response_text = "\n".join(
+            [f"{curr['name']}: {curr['rate']} руб." 
+             for curr in currencies]
+        ) or "Нет доступных валют"
+        await message.answer(response_text)
+    else:
+        await message.answer("Ошибка получения данных")
 
 # Конвертация валюты
 @router.message(Command("convert"))
@@ -191,7 +186,7 @@ async def convert_start(message: types.Message, state: FSMContext):
 
 @router.message(ConvertStates.waiting_currency_name)
 async def process_convert_currency(message: types.Message, state: FSMContext):
-    if not await check_currency_exists(message.text):
+    if not check_currency_exists(message.text):
         await message.answer("Валюта не найдена!")
         await state.clear()
         return
@@ -206,16 +201,15 @@ async def process_convert_amount(message: types.Message, state: FSMContext):
         amount = float(message.text)
         data = await state.get_data()
         
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                'http://localhost:5002/convert',
-                params={'currency': data['currency'], 'amount': amount}
-            ) as resp:
-                if resp.status == 200:
-                    result = (await resp.json()).get('result', 0)
-                    await message.answer(f"Результат: {result:.2f} руб.")
-                else:
-                    await message.answer("Ошибка конвертации!")
+        response = requests.get(
+            'http://localhost:5002/convert',
+            params={'currency': data['currency'], 'amount': amount}
+        )
+        if response.status_code == 200:
+            result = response.json().get('result', 0)
+            await message.answer(f"Результат: {result:.2f} руб.")
+        else:
+            await message.answer("Ошибка конвертации!")
     
     except ValueError:
         await message.answer("Некорректная сумма!")
